@@ -9,7 +9,7 @@
 const themeConfig = {
   // Brand Colors
   colors: {
-    primary: '#1c324a',      // Blue - Main brand color
+    primary: '#142436',      // Blue - Main brand color
     accent: '#cdad7d',       // Beige/Gold - Accent/highlight color
     secondary: '#263d56',    // Lighter blue for secondary elements
     
@@ -19,7 +19,7 @@ const themeConfig = {
     textMuted: '#A0A0A0',    // Muted gray text
     
     // Background Colors
-    bgPrimary: '#1c324a',    // Primary background (blue)
+    bgPrimary: '#142436',    // Primary background (blue)
     bgSecondary: '#152638',  // Secondary background (darker blue)
     bgOverlay: 'rgba(28, 50, 74, 0.6)', // Overlay for video/image backgrounds
     

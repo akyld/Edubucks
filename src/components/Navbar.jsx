@@ -14,7 +14,7 @@ const Navbar = ({ logo = '/logo.svg' }) => {
     { label: 'BLOG', href: '/blog', isRoute: true },
     { label: 'SINAV BAŞVURU', href: '/sinav-basvuru', isRoute: true },
     { label: 'EDUBUCKS AI', href: '/edubucks-ai', isRoute: true },
-    { label: 'FITBUCKS', href: '#fitbucks' },
+    { label: 'FITBUCKS', href: import.meta.env.VITE_FITBUCKS_URL || 'http://localhost:5174', isExternal: true },
     { label: 'EDUBUCKS FUNNEL', href: '#funnel' },
     { label: 'BOOK-A-DEMO', href: '/book-a-demo', isRoute: true, isSpecial: true },
     { label: 'HEMEN BAŞVUR', href: '/blog/hemen-basvur', isRoute: true },
@@ -89,7 +89,13 @@ const Navbar = ({ logo = '/logo.svg' }) => {
             {navLinks.map((link, index) => {
               const isActive = link.isRoute && location.pathname === link.href;
               const LinkComponent = link.isRoute ? Link : 'a';
-              const linkProps = link.isRoute ? { to: link.href } : { href: link.href };
+              const linkProps = link.isRoute 
+                ? { to: link.href } 
+                : { 
+                    href: link.href,
+                    target: link.isExternal ? '_blank' : '_self',
+                    rel: link.isExternal ? 'noopener noreferrer' : undefined
+                  };
               
               return (
                 <motion.div
@@ -181,7 +187,13 @@ const Navbar = ({ logo = '/logo.svg' }) => {
             {navLinks.map((link) => {
               const isActive = link.isRoute && location.pathname === link.href;
               const LinkComponent = link.isRoute ? Link : 'a';
-              const linkProps = link.isRoute ? { to: link.href } : { href: link.href };
+              const linkProps = link.isRoute 
+                ? { to: link.href } 
+                : { 
+                    href: link.href,
+                    target: link.isExternal ? '_blank' : '_self',
+                    rel: link.isExternal ? 'noopener noreferrer' : undefined
+                  };
               
               return (
                 <LinkComponent
