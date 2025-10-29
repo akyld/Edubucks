@@ -18,6 +18,7 @@ const Navbar = ({ logo = '/logo.svg' }) => {
     { label: 'EDUBUCKS FUNNEL', href: '#funnel' },
     { label: 'BOOK-A-DEMO', href: '/book-a-demo', isRoute: true, isSpecial: true },
     { label: 'HEMEN BAŞVUR', href: '/blog/hemen-basvur', isRoute: true },
+    { label: 'ADMIN', href: '/admin', isRoute: true, isAdmin: true },
   ];
   
   useEffect(() => {
