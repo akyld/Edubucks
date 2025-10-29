@@ -3,16 +3,19 @@
 
 // Base URL configuration based on environment
 const getApiBaseUrl = () => {
-  // For development and CI, use the backend URL from environment variable
-  // This should be set in .env file as VITE_API_BASE_URL
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  const mode = import.meta.env.MODE; // Vite's built-in environment mode
   
-  if (envUrl) {
-    return envUrl;
+  switch (mode) {
+    case 'prod':
+      // Production backend (to be configured when ready)
+      return 'https://production-backend.railway.app';
+    
+    case 'dev':
+    case 'ci':
+    default:
+      // Dev and CI both use the same staging backend
+      return 'https://ci-triariigrowth-administration-backend-production.up.railway.app';
   }
-  
-  // Fallback for local development
-  return 'http://localhost:3039';
 };
 
 // Export the base URL
@@ -22,11 +25,11 @@ export const API_BASE_URL = getApiBaseUrl();
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: '/api/auth/login',
-    LOGOUT: '/api/auth/logout',
-    REFRESH: '/api/auth/refresh',
-    OAUTH: '/api/auth/oauth2/authorization/google',
-    OAUTH_CALLBACK: '/api/auth/oauth2/callback/google'
+    LOGIN: '/api/v1/auth/login',
+    LOGOUT: '/api/v1/auth/logout',
+    REFRESH: '/api/v1/auth/refresh',
+    OAUTH: '/oauth2/authorization/google',
+    OAUTH_CALLBACK: '/login/oauth2/code/google'
   },
   
   // Admin Endpoints
@@ -35,7 +38,7 @@ export const API_ENDPOINTS = {
     EXAMS: '/api/admin/exams',
     EXAM_BY_ID: (id) => `/api/admin/exams/${id}`,
     EXAM_APPLICATIONS: '/api/admin/exam-applications',
-    EXAM_APPLICATIONS_BY_EXAM: (examId) => `/api/admin/exam-applications/exam/${examId}`,
+    EXAM_APPLICATIONS_BY_EXAM: (examId) => `/api/admin/exams/${examId}/applications`,
     
     // Seminars/Events
     SEMINARS: '/api/admin/seminars',
@@ -51,6 +54,15 @@ export const API_ENDPOINTS = {
     
     // Statistics
     STATS: '/api/admin/statistics'
+  },
+  
+  // Public Endpoints
+  PUBLIC: {
+    EXAMS: '/api/public/exams',
+    SEMINARS: '/api/public/seminars',
+    CITIES: '/api/public/cities',
+    EXAM_APPLICATIONS: '/api/public/exam-applications',
+    PAYMENT_INITIATE: '/api/public/payment/initiate'
   }
 };
 

@@ -1,43 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Check, X, CreditCard, User, Mail, Calendar, DollarSign, Hash, Plus } from 'lucide-react';
+import { api } from '../../services/admin/api';
 import themeConfig from '../../theme/themeConfig';
 
 const Odemeler = () => {
-  const [odemeler, setOdemeler] = useState([
-    {
-      id: 1,
-      ogrenciAdi: 'Ahmet Yılmaz',
-      mail: 'ahmet@example.com',
-      sinav: '2024 LGS Deneme Sınavı',
-      tutar: '150₺',
-      odemeTarihi: '2024-01-10',
-      paytrId: 'PTR-123456789',
-      durum: 'Tamamlandı',
-    },
-    {
-      id: 2,
-      ogrenciAdi: 'Ayşe Demir',
-      mail: 'ayse@example.com',
-      sinav: '2024 YKS Deneme Sınavı',
-      tutar: '200₺',
-      odemeTarihi: '-',
-      paytrId: '-',
-      durum: 'Beklemede',
-    },
-    {
-      id: 3,     
-      ogrenciAdi: 'Mehmet Kaya',
-      mail: 'mehmet@example.com',
-      sinav: '2024 LGS Deneme Sınavı',
-      tutar: '150₺',
-      odemeTarihi: '2024-01-12',
-      paytrId: 'PTR-987654321',
-      durum: 'Tamamlandı',
-    },
-  ])
-
+  const [odemeler, setOdemeler] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [pagination, setPagination] = useState({ page: 0, size: 20, totalElements: 0, totalPages: 0 })
+
+  useEffect(() => {
+    const loadPayments = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const resp = await api.getPayments(pagination.page, pagination.size)
+        const content = resp?.content || []
+        const mapped = content.map((p) => ({
+          id: p.id,
+          ogrenciAdi: p.studentName || p.ogrenciAdi || '',
+          mail: p.email || p.mail || '',
+          sinav: p.examName || p.sinav || '',
+          tutar: p.amount != null ? `${p.amount}₺` : (p.tutar || ''),
+          odemeTarihi: p.paidAt || p.odemeTarihi || '-',
+          paytrId: p.paytrId || '-',
+          durum: p.status === 'PAID' ? 'Tamamlandı' : 'Beklemede'
+        }))
+        setOdemeler(mapped)
+        setPagination((p) => ({ ...p, totalElements: resp.totalElements || 0, totalPages: resp.totalPages || 0 }))
+      } catch (e) {
+        console.error('Error loading payments:', e)
+        setError('Ödemeler yüklenirken bir hata oluştu')
+        setOdemeler([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadPayments()
+  }, [pagination.page, pagination.size])
 
   const filteredOdemeler = odemeler.filter(odeme =>
     odeme.ogrenciAdi.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,6 +67,22 @@ const Odemeler = () => {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: themeConfig.colors.textSecondary }}>Yükleniyor...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: '#EF4444' }}>{error}</div>
+      </div>
+    )
+  }
 
   return (
     <motion.div 

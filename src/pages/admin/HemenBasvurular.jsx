@@ -1,40 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Users, Mail, Phone, MapPin, GraduationCap, Eye, Edit, Trash2 } from 'lucide-react';
+import { api } from '../../services/admin/api';
 import themeConfig from '../../theme/themeConfig';
 
 const HemenBasvurular = () => {
-  const [basvurular, setBasvurular] = useState([
-    {
-      id: 1,
-      isim: 'Zeynep Aydın',
-      mail: 'zeynep@example.com',
-      telefon: '0532 111 2233',
-      okul: 'Bursa Anadolu Lisesi',
-      il: 'Bursa',
-      ilgilendigiProgram: 'LGS Hazırlık',
-    },
-    {
-      id: 2,
-      isim: 'Can Özkan',
-      mail: 'can@example.com',
-      telefon: '0533 444 5566',
-      okul: 'Antalya Koleji',
-      il: 'Antalya',
-      ilgilendigiProgram: 'YKS Hazırlık',
-    },
-    {
-      id: 3,
-      isim: 'Elif Şahin',
-      mail: 'elif@example.com',
-      telefon: '0541 777 8899',
-      okul: 'İzmir Fen Lisesi',
-      il: 'İzmir',
-      ilgilendigiProgram: 'LGS Hazırlık',
-    },
-  ])
-
+  const [basvurular, setBasvurular] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [pagination, setPagination] = useState({ page: 0, size: 20, totalElements: 0, totalPages: 0 })
+
+  useEffect(() => {
+    const loadQuickApplications = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const resp = await api.getApplications(pagination.page, pagination.size)
+        const content = resp?.content || []
+        const mapped = content.map((b) => ({
+          id: b.id,
+          isim: b.name || b.isim || '',
+          mail: b.email || b.mail || '',
+          telefon: b.phone || b.telefon || '',
+          okul: b.schoolName || b.okul || '',
+          il: b.city || b.il || '',
+          ilgilendigiProgram: b.program || b.ilgilendigiProgram || ''
+        }))
+        setBasvurular(mapped)
+        setPagination((p) => ({ ...p, totalElements: resp.totalElements || 0, totalPages: resp.totalPages || 0 }))
+      } catch (e) {
+        console.error('Error loading applications:', e)
+        setError('Başvurular yüklenirken bir hata oluştu')
+        setBasvurular([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadQuickApplications()
+  }, [pagination.page, pagination.size])
 
   const filteredBasvurular = basvurular.filter(basvuru =>
     basvuru.isim.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,6 +67,22 @@ const HemenBasvurular = () => {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: themeConfig.colors.textSecondary }}>Yükleniyor...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: '#EF4444' }}>{error}</div>
+      </div>
+    )
+  }
 
   return (
     <motion.div 

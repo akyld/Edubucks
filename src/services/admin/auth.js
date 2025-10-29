@@ -2,6 +2,7 @@
 // Supports both mock authentication (for development) and OAuth (for production)
 
 import { API_ENDPOINTS } from '../../config/api';
+import config from '../../config/environment';
 
 export const authService = {
   // Mock login for development (will be replaced with OAuth)
@@ -43,7 +44,12 @@ export const authService = {
 
   // OAuth login redirect
   async loginWithOAuth() {
+    if (!config.FEATURES.ENABLE_OAUTH) {
+      throw new Error('OAuth is not enabled. Please set VITE_AUTH_MODE=oauth');
+    }
+    
     // Redirect to backend OAuth endpoint
+    // The browser automatically sends the Origin header
     window.location.href = `${API_ENDPOINTS.AUTH.OAUTH}`;
   },
 
@@ -119,7 +125,16 @@ export const authService = {
 
   // Check if we're using OAuth (no mock credentials)
   isOAuthMode() {
-    // This will be true when we switch to OAuth-only mode
-    return false; // Currently using mock mode
+    return config.FEATURES.ENABLE_OAUTH;
+  },
+
+  // Check if we're using mock authentication
+  isMockMode() {
+    return config.FEATURES.ENABLE_MOCK_AUTH;
+  },
+
+  // Get current authentication mode
+  getAuthMode() {
+    return config.AUTH_MODE;
   }
 };

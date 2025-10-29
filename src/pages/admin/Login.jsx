@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Chrome } from 'lucide-react';
 import { authService } from '../../services/admin/auth';
+import config from '../../config/environment';
 import themeConfig from '../../theme/themeConfig';
 
 const Login = () => {
@@ -35,6 +36,17 @@ const Login = () => {
     } catch (err) {
       setError('Giriş başarısız. E-posta ve şifrenizi kontrol edin.');
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOAuthLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+      await authService.loginWithOAuth();
+    } catch (err) {
+      setError('OAuth girişi başlatılamadı. Lütfen tekrar deneyin.');
       setIsLoading(false);
     }
   };
@@ -189,18 +201,61 @@ const Login = () => {
             )}
           </motion.button>
 
-          {/* Demo Credentials */}
-          <div 
-            className="text-center text-sm p-4 rounded-lg"
-            style={{ 
-              backgroundColor: themeConfig.colors.bgSecondary,
-              color: themeConfig.colors.textSecondary
-            }}
-          >
-            <p className="font-medium mb-2">Demo Giriş Bilgileri:</p>
-            <p>E-posta: admin@edubucks.org</p>
-            <p>Şifre: admin123</p>
-          </div>
+          {/* OAuth Section - Only show if OAuth is enabled */}
+          {config.FEATURES.ENABLE_OAUTH && (
+            <>
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t" style={{ borderColor: themeConfig.colors.accent + '30' }} />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span 
+                    className="px-2"
+                    style={{ 
+                      backgroundColor: themeConfig.colors.bgPrimary,
+                      color: themeConfig.colors.textSecondary 
+                    }}
+                  >
+                    veya
+                  </span>
+                </div>
+              </div>
+
+              {/* OAuth Button */}
+              <motion.button
+                type="button"
+                onClick={handleOAuthLogin}
+                disabled={isLoading}
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: '#4285F4',
+                  color: 'white',
+                  focusRingColor: '#4285F4'
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Chrome className="w-5 h-5 mr-2" />
+                Google ile Giriş Yap
+              </motion.button>
+            </>
+          )}
+
+          {/* Demo Credentials - Only show in mock mode */}
+          {config.FEATURES.ENABLE_MOCK_AUTH && (
+            <div 
+              className="text-center text-sm p-4 rounded-lg"
+              style={{ 
+                backgroundColor: themeConfig.colors.bgSecondary,
+                color: themeConfig.colors.textSecondary
+              }}
+            >
+              <p className="font-medium mb-2">Demo Giriş Bilgileri:</p>
+              <p>E-posta: admin@edubucks.org</p>
+              <p>Şifre: admin123</p>
+            </div>
+          )}
         </motion.form>
       </motion.div>
     </div>

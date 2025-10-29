@@ -1,43 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, User, Hash, Calendar, Phone, School, MapPin, FileText, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { api } from '../../services/admin/api';
 import themeConfig from '../../theme/themeConfig';
 
 const SinavBasvurulari = () => {
-  const [basvurular, setBasvurular] = useState([
-    {
-      id: 1,
-      isim: 'Ahmet Yılmaz',
-      tcKimlik: '12345678901',
-      dogumTarihi: '2008-05-15',
-      telefon: '0532 123 4567',
-      okul: 'Ataşehir Koleji',
-      il: 'İstanbul',
-      basvurduguSinav: '2024 LGS Deneme Sınavı',
-    },
-    {
-      id: 2,
-      isim: 'Ayşe Demir',
-      tcKimlik: '98765432109',
-      dogumTarihi: '2007-08-22',
-      telefon: '0533 987 6543',
-      okul: 'Ankara Fen Lisesi',
-      il: 'Ankara',
-      basvurduguSinav: '2024 YKS Deneme Sınavı',
-    },
-    {
-      id: 3,
-      isim: 'Mehmet Kaya',
-      tcKimlik: '45678912345',
-      dogumTarihi: '2009-03-10',
-      telefon: '0541 456 7890',
-      okul: 'İzmir Koleji',
-      il: 'İzmir',
-      basvurduguSinav: '2024 LGS Deneme Sınavı',
-    },
-  ])
+  const [basvurular, setBasvurular] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({ page: 0, size: 20, totalElements: 0, totalPages: 0 });
 
-  const [searchTerm, setSearchTerm] = useState('')
+  useEffect(() => {
+    const loadApplications = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const resp = await api.getExamApplications(pagination.page, pagination.size);
+        const content = resp?.content || [];
+        const mapped = content.map((b) => ({
+          id: b.id,
+          isim: b.studentName || b.isim || '',
+          tcKimlik: b.nationalId || b.tcKimlik || '',
+          dogumTarihi: b.birthDate || b.dogumTarihi || '',
+          telefon: b.phone || b.telefon || '',
+          okul: b.schoolName || b.okul || '',
+          il: b.city || b.il || '',
+          basvurduguSinav: b.examName || b.basvurduguSinav || ''
+        }));
+        setBasvurular(mapped);
+        setPagination((p) => ({ ...p, totalElements: resp.totalElements || 0, totalPages: resp.totalPages || 0 }));
+      } catch (e) {
+        console.error('Error loading applications:', e);
+        setError('Başvurular yüklenirken bir hata oluştu');
+        setBasvurular([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadApplications();
+  }, [pagination.page, pagination.size]);
 
   const filteredBasvurular = basvurular.filter(basvuru =>
     basvuru.isim.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,6 +68,22 @@ const SinavBasvurulari = () => {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: themeConfig.colors.textSecondary }}>Yükleniyor...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: '#EF4444' }}>{error}</div>
+      </div>
+    );
+  }
 
   return (
     <motion.div 

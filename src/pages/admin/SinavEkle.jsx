@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Save, Check, Plus, Calendar, MapPin, Clock, CreditCard, FileText, ExternalLink, ArrowLeft } from 'lucide-react';
+import { api } from '../../services/admin/api';
 import themeConfig from '../../theme/themeConfig';
 
 const SinavEkle = () => {
@@ -13,19 +14,21 @@ const SinavEkle = () => {
   const sehirler = ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya']
 
   const [formData, setFormData] = useState({
-    sehir: '',
-    baslik: '',
-    yer: '',
-    adres: '',
-    tarih: '',
-    saat: '',
-    veliSemineri: '',
-    ucret: '',
-    ornekSorular: '',
-    kurumsalSayfa: '',
+    city: '',
+    examName: '',
+    location: '',
+    address: '',
+    examDate: '',
+    examTime: '',
+    parentSeminar: '',
+    examFee: '',
+    sampleQuestions: '',
+    corporatePage: '',
   })
 
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Mock exam data for editing
   const mockExamData = {
@@ -56,31 +59,62 @@ const SinavEkle = () => {
   };
 
   useEffect(() => {
-    if (isEditMode && mockExamData[editId]) {
-      setFormData(mockExamData[editId]);
+    if (isEditMode && editId) {
+      loadExamData(editId);
     }
   }, [editId, isEditMode]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    console.log('Sınav kaydedildi:', formData)
-    setShowSuccess(true)
-    setTimeout(() => {
-      setShowSuccess(false)
+  const loadExamData = async (examId) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const exam = await api.getExamById(examId);
+      
+      // Map backend fields to form fields
       setFormData({
-        sehir: '',
-        baslik: '',
-        yer: '',
-        adres: '',
-        tarih: '',
-        saat: '',
-        veliSemineri: '',
-        ucret: '',
-        ornekSorular: '',
-        kurumsalSayfa: '',
-      })
-    }, 2000)
-  }
+        city: exam.city || '',
+        examName: exam.examName || '',
+        location: exam.location || '',
+        address: exam.address || '',
+        examDate: exam.examDate || '',
+        examTime: exam.examTime || '',
+        parentSeminar: exam.parentSeminar || '',
+        examFee: exam.examFee || '',
+        sampleQuestions: exam.sampleQuestions || '',
+        corporatePage: exam.corporatePage || '',
+      });
+    } catch (err) {
+      console.error('Error loading exam:', err);
+      setError('Sınav verileri yüklenirken bir hata oluştu');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      if (isEditMode) {
+        await api.updateExam(editId, formData);
+      } else {
+        await api.createExam(formData);
+      }
+      
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigate('/admin/sinavlar');
+      }, 2000);
+    } catch (err) {
+      console.error('Error saving exam:', err);
+      setError(isEditMode ? 'Sınav güncellenirken bir hata oluştu' : 'Sınav oluşturulurken bir hata oluştu');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -164,6 +198,23 @@ const SinavEkle = () => {
         </div>
 
         <div className="p-6">
+          {error && (
+            <motion.div 
+              className="mb-6 p-4 rounded-lg flex items-center"
+              style={{
+                backgroundColor: '#EF4444' + '20',
+                border: '1px solid #EF4444' + '40',
+                color: '#EF4444'
+              }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="w-5 h-5 mr-2">⚠</div>
+              {error}
+            </motion.div>
+          )}
+
           {showSuccess && (
             <motion.div 
               className="mb-6 p-4 rounded-lg flex items-center"
@@ -192,9 +243,10 @@ const SinavEkle = () => {
                   Şehir *
                 </label>
                 <select
+                  name="city"
                   required
-                  value={formData.sehir}
-                  onChange={(e) => setFormData({ ...formData, sehir: e.target.value })}
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -222,9 +274,10 @@ const SinavEkle = () => {
                 </label>
                 <input
                   type="text"
+                  name="examName"
                   required
-                  value={formData.baslik}
-                  onChange={(e) => setFormData({ ...formData, baslik: e.target.value })}
+                  value={formData.examName}
+                  onChange={(e) => setFormData({ ...formData, examName: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -249,8 +302,9 @@ const SinavEkle = () => {
                 <input
                   type="text"
                   required
-                  value={formData.yer}
-                  onChange={(e) => setFormData({ ...formData, yer: e.target.value })}
+                  name="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -273,8 +327,9 @@ const SinavEkle = () => {
                 <input
                   type="text"
                   required
-                  value={formData.adres}
-                  onChange={(e) => setFormData({ ...formData, adres: e.target.value })}
+                  name="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -299,8 +354,9 @@ const SinavEkle = () => {
                 <input
                   type="date"
                   required
-                  value={formData.tarih}
-                  onChange={(e) => setFormData({ ...formData, tarih: e.target.value })}
+                  name="examDate"
+                  value={formData.examDate}
+                  onChange={(e) => setFormData({ ...formData, examDate: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -322,8 +378,9 @@ const SinavEkle = () => {
                 <input
                   type="time"
                   required
-                  value={formData.saat}
-                  onChange={(e) => setFormData({ ...formData, saat: e.target.value })}
+                  name="examTime"
+                  value={formData.examTime}
+                  onChange={(e) => setFormData({ ...formData, examTime: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -346,8 +403,9 @@ const SinavEkle = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.veliSemineri}
-                  onChange={(e) => setFormData({ ...formData, veliSemineri: e.target.value })}
+                  name="parentSeminar"
+                  value={formData.parentSeminar}
+                  onChange={(e) => setFormData({ ...formData, parentSeminar: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -370,8 +428,9 @@ const SinavEkle = () => {
                 <input
                   type="text"
                   required
-                  value={formData.ucret}
-                  onChange={(e) => setFormData({ ...formData, ucret: e.target.value })}
+                  name="examFee"
+                  value={formData.examFee}
+                  onChange={(e) => setFormData({ ...formData, examFee: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -395,8 +454,9 @@ const SinavEkle = () => {
                 </label>
                 <input
                   type="url"
-                  value={formData.ornekSorular}
-                  onChange={(e) => setFormData({ ...formData, ornekSorular: e.target.value })}
+                  name="sampleQuestions"
+                  value={formData.sampleQuestions}
+                  onChange={(e) => setFormData({ ...formData, sampleQuestions: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -418,8 +478,9 @@ const SinavEkle = () => {
                 </label>
                 <input
                   type="url"
-                  value={formData.kurumsalSayfa}
-                  onChange={(e) => setFormData({ ...formData, kurumsalSayfa: e.target.value })}
+                  name="corporatePage"
+                  value={formData.corporatePage}
+                  onChange={(e) => setFormData({ ...formData, corporatePage: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: themeConfig.colors.bgSecondary,
@@ -438,21 +499,31 @@ const SinavEkle = () => {
             >
               <motion.button 
                 type="submit" 
-                className="flex items-center px-8 py-3 rounded-lg font-bold text-lg"
+                disabled={isLoading}
+                className="flex items-center px-8 py-3 rounded-lg font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: themeConfig.colors.accent,
                   color: themeConfig.colors.textPrimary,
                   boxShadow: '0 8px 20px rgba(205, 173, 125, 0.3)',
                   transition: 'all 0.3s ease',
                 }}
-                whileHover={{
+                whileHover={!isLoading ? {
                   scale: 1.05,
                   boxShadow: '0 12px 30px rgba(205, 173, 125, 0.4)',
-                }}
-                whileTap={{ scale: 0.95 }}
+                } : {}}
+                whileTap={!isLoading ? { scale: 0.95 } : {}}
               >
-                <Save className="w-5 h-5 mr-2" />
-                {isEditMode ? 'Değişiklikleri Kaydet' : 'Sınav Kaydet'}
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    {isEditMode ? 'Güncelleniyor...' : 'Kaydediliyor...'}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5 mr-2" />
+                    {isEditMode ? 'Değişiklikleri Kaydet' : 'Sınav Kaydet'}
+                  </>
+                )}
               </motion.button>
             </motion.div>
           </form>

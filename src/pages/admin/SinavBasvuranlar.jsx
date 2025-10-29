@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, User, Mail, Phone, Calendar, MapPin, School, GraduationCap, Eye, Edit, Trash2 } from 'lucide-react';
+import { api } from '../../services/admin/api';
 import themeConfig from '../../theme/themeConfig';
 
 const SinavBasvuranlar = () => {
@@ -9,75 +10,48 @@ const SinavBasvuranlar = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
-  // Mock exam data
-  const [examData, setExamData] = useState({
-    id: 1,
-    baslik: '2024 LGS Deneme Sınavı',
-    sehir: 'İstanbul',
-    yer: 'Ataşehir Koleji',
-    tarih: '2024-02-15',
-    saat: '10:00'
-  });
-
-  // Mock applicants data
-  const [applicants, setApplicants] = useState([
-    {
-      id: 1,
-      adSoyad: 'Ahmet Yılmaz',
-      email: 'ahmet.yilmaz@email.com',
-      telefon: '0532 123 45 67',
-      dogumTarihi: '2008-05-15',
-      cinsiyet: 'Erkek',
-      sinif: '8. Sınıf',
-      okul: 'Ataşehir Ortaokulu',
-      veliAdSoyad: 'Mehmet Yılmaz',
-      veliEmail: 'mehmet.yilmaz@email.com',
-      veliTelefon: '0532 987 65 43',
-      veliYakinlik: 'Baba',
-      basvuruTarihi: '2024-01-10',
-      durum: 'Onaylandı'
-    },
-    {
-      id: 2,
-      adSoyad: 'Ayşe Demir',
-      email: 'ayse.demir@email.com',
-      telefon: '0533 456 78 90',
-      dogumTarihi: '2008-08-22',
-      cinsiyet: 'Kadın',
-      sinif: '8. Sınıf',
-      okul: 'Kadıköy Ortaokulu',
-      veliAdSoyad: 'Fatma Demir',
-      veliEmail: 'fatma.demir@email.com',
-      veliTelefon: '0533 111 22 33',
-      veliYakinlik: 'Anne',
-      basvuruTarihi: '2024-01-12',
-      durum: 'Beklemede'
-    },
-    {
-      id: 3,
-      adSoyad: 'Can Özkan',
-      email: 'can.ozkan@email.com',
-      telefon: '0534 789 01 23',
-      dogumTarihi: '2008-03-10',
-      cinsiyet: 'Erkek',
-      sinif: '8. Sınıf',
-      okul: 'Beşiktaş Ortaokulu',
-      veliAdSoyad: 'Ali Özkan',
-      veliEmail: 'ali.ozkan@email.com',
-      veliTelefon: '0534 444 55 66',
-      veliYakinlik: 'Baba',
-      basvuruTarihi: '2024-01-15',
-      durum: 'Onaylandı'
-    }
-  ]);
+  const [error, setError] = useState(null);
+  const [examData, setExamData] = useState(null);
+  const [applicants, setApplicants] = useState([]);
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        // Load exam details
+        const exam = await api.getExamById(sinavId);
+        setExamData(exam);
+        // Load applicants for exam
+        const resp = await api.getExamApplicationsByExam(sinavId, 0, 100);
+        const content = resp?.content || [];
+        // Map fields to UI expectations
+        const mapped = content.map((a) => ({
+          id: a.id,
+          adSoyad: a.studentName || a.adSoyad || '',
+          email: a.email || a.ogrenciEmail || '',
+          telefon: a.phone || a.telefon || '',
+          dogumTarihi: a.birthDate || a.dogumTarihi || '',
+          cinsiyet: a.gender || a.cinsiyet || '',
+          sinif: a.grade || a.sinif || '',
+          okul: a.schoolName || a.okul || '',
+          veliAdSoyad: a.parentName || a.veliAdSoyad || '',
+          veliEmail: a.parentEmail || a.veliEmail || '',
+          veliTelefon: a.parentPhone || a.veliTelefon || '',
+          veliYakinlik: a.parentRelation || a.veliYakinlik || '',
+          basvuruTarihi: a.appliedAt || a.basvuruTarihi || '',
+          durum: a.status || 'Beklemede'
+        }));
+        setApplicants(mapped);
+      } catch (e) {
+        console.error('Error loading applicants:', e);
+        setError('Başvurular yüklenirken bir hata oluştu');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [sinavId]);
 
   const filteredApplicants = applicants.filter(applicant =>
     applicant.adSoyad.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -128,6 +102,14 @@ const SinavBasvuranlar = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: '#EF4444' }}>{error}</div>
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       className="space-y-6"
@@ -159,7 +141,7 @@ const SinavBasvuranlar = () => {
               className="text-sm"
               style={{ color: themeConfig.colors.textSecondary }}
             >
-              {examData.baslik} - {examData.sehir}
+              {(examData?.examName || examData?.baslik) || ''} - {(examData?.city || examData?.sehir) || ''}
             </p>
           </div>
         </div>
@@ -187,13 +169,13 @@ const SinavBasvuranlar = () => {
                   className="text-sm font-medium"
                   style={{ color: themeConfig.colors.textPrimary }}
                 >
-                  {new Date(examData.tarih).toLocaleDateString('tr-TR')}
+                  {examData?.examDate ? new Date(examData.examDate).toLocaleDateString('tr-TR') : (examData?.tarih ? new Date(examData.tarih).toLocaleDateString('tr-TR') : '-')}
                 </p>
                 <p 
                   className="text-xs"
                   style={{ color: themeConfig.colors.textSecondary }}
                 >
-                  {examData.saat}
+                  {examData?.examTime || examData?.saat || '-'}
                 </p>
               </div>
             </div>
@@ -208,13 +190,13 @@ const SinavBasvuranlar = () => {
                   className="text-sm font-medium"
                   style={{ color: themeConfig.colors.textPrimary }}
                 >
-                  {examData.yer}
+                  {examData?.location || examData?.yer || ''}
                 </p>
                 <p 
                   className="text-xs"
                   style={{ color: themeConfig.colors.textSecondary }}
                 >
-                  {examData.sehir}
+                  {examData?.city || examData?.sehir || ''}
                 </p>
               </div>
             </div>

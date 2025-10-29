@@ -12,6 +12,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Layout from './components/admin/Layout';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import AdminLogin from './pages/admin/Login';
+import OAuthCallback from './pages/admin/OAuthCallback';
 import AdminEtkinlikler from './pages/admin/Etkinlikler';
 import AdminSinavListele from './pages/admin/SinavListele';
 import AdminSinavEkle from './pages/admin/SinavEkle';
@@ -38,6 +39,7 @@ function App() {
         
         {/* Admin Panel Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/administration" element={<OAuthCallback />} />
         <Route path="/admin" element={
           <ProtectedRoute>
             <Layout />

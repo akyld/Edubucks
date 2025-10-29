@@ -1,50 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Search, Edit, Trash2, ExternalLink, FileText, MapPin, Calendar, Clock, Users, CreditCard, Plus, Eye } from 'lucide-react';
+import { api } from '../../services/admin/api';
 import themeConfig from '../../theme/themeConfig';
 
 const SinavListele = () => {
   const navigate = useNavigate();
-  const [sinavlar, setSinavlar] = useState([
-    {
-      id: 1,
-      sehir: 'İstanbul',
-      baslik: '2024 LGS Deneme Sınavı',
-      yer: 'Ataşehir Koleji',
-      adres: 'Barbaros Mah. Ataşehir/İstanbul',
-      tarih: '2024-02-15',
-      saat: '10:00',
-      veliSemineri: '15 Ocak 2024, 18:00',
-      ucret: '150₺',
-      ornekSorular: 'https://example.com/ornek-sorular',
-      kurumsalSayfa: 'https://example.com/sinav',
-    },
-    {
-      id: 2,
-      sehir: 'Ankara',
-      baslik: '2024 YKS Deneme Sınavı',
-      yer: 'Ankara Fen Lisesi',
-      adres: 'Çankaya/Ankara',
-      tarih: '2024-02-20',
-      saat: '09:00',
-      veliSemineri: '20 Ocak 2024, 18:00',
-      ucret: '200₺',
-      ornekSorular: 'https://example.com/ornek-sorular',
-      kurumsalSayfa: 'https://example.com/sinav',
-    },
-  ])
+  const [sinavlar, setSinavlar] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0
+  });
 
-  const [searchTerm, setSearchTerm] = useState('')
+  useEffect(() => {
+    loadExams();
+  }, [pagination.page, pagination.size]);
+
+  const loadExams = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await api.getExams(pagination.page, pagination.size);
+      
+      setSinavlar(response.content || []);
+      setPagination(prev => ({
+        ...prev,
+        totalElements: response.totalElements || 0,
+        totalPages: response.totalPages || 0
+      }));
+    } catch (err) {
+      console.error('Error loading exams:', err);
+      setError('Sınavlar yüklenirken bir hata oluştu');
+      setSinavlar([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredSinavlar = sinavlar.filter(sinav =>
-    sinav.baslik.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sinav.sehir.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+    (sinav.examName || sinav.baslik || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (sinav.city || sinav.sehir || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Bu sınavı silmek istediğinizden emin misiniz?')) {
-      setSinavlar(sinavlar.filter(s => s.id !== id));
+      try {
+        setIsLoading(true);
+        setError(null);
+        await api.deleteExam(id);
+        await loadExams();
+      } catch (err) {
+        console.error('Error deleting exam:', err);
+        setError('Sınav silinirken bir hata oluştu');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -69,6 +85,32 @@ const SinavListele = () => {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div 
+          className="text-lg"
+          style={{ color: themeConfig.colors.textSecondary }}
+        >
+          Yükleniyor...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div 
+          className="text-lg text-red-400"
+          style={{ color: '#EF4444' }}
+        >
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -221,7 +263,7 @@ const SinavListele = () => {
                           className="text-sm font-medium"
                           style={{ color: themeConfig.colors.textPrimary }}
                         >
-                          {sinav.sehir}
+                          {sinav.city || sinav.sehir}
                         </span>
                       </div>
                     </td>
@@ -230,7 +272,7 @@ const SinavListele = () => {
                         className="text-sm font-medium"
                         style={{ color: themeConfig.colors.textPrimary }}
                       >
-                        {sinav.baslik}
+                        {sinav.examName || sinav.baslik}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -239,13 +281,13 @@ const SinavListele = () => {
                           className="text-sm font-medium"
                           style={{ color: themeConfig.colors.textPrimary }}
                         >
-                          {sinav.yer}
+                          {sinav.location || sinav.yer}
                         </div>
                         <div 
                           className="text-xs max-w-xs truncate"
                           style={{ color: themeConfig.colors.textSecondary }}
                         >
-                          {sinav.adres}
+                          {sinav.address || sinav.adres}
                         </div>
                       </div>
                     </td>
@@ -261,7 +303,7 @@ const SinavListele = () => {
                             className="text-sm"
                             style={{ color: themeConfig.colors.textPrimary }}
                           >
-                            {new Date(sinav.tarih).toLocaleDateString('tr-TR')}
+                            {new Date(sinav.examDate || sinav.tarih).toLocaleDateString('tr-TR')}
                           </span>
                         </div>
                         <div className="flex items-center">
@@ -274,7 +316,7 @@ const SinavListele = () => {
                             className="text-sm"
                             style={{ color: themeConfig.colors.textPrimary }}
                           >
-                            {sinav.saat}
+                            {sinav.examTime || sinav.saat}
                           </span>
                         </div>
                       </div>
@@ -295,13 +337,13 @@ const SinavListele = () => {
                           color: themeConfig.colors.accent
                         }}
                       >
-                        {sinav.ucret}
+                        {sinav.examFee ? `${sinav.examFee}₺` : sinav.ucret}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
                         <a
-                          href={sinav.ornekSorular}
+                          href={sinav.sampleQuestions || sinav.ornekSorular}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-2 py-1 text-xs rounded-md transition-colors"
@@ -322,7 +364,7 @@ const SinavListele = () => {
                           Sorular
                         </a>
                         <a
-                          href={sinav.kurumsalSayfa}
+                          href={sinav.corporatePage || sinav.kurumsalSayfa}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-2 py-1 text-xs rounded-md transition-colors"
